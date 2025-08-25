@@ -1,0 +1,35 @@
+name: LuaRocks issue 1829
+
+on: push
+
+jobs:
+  reproduction:
+    runs-on: windows-latest
+
+    strategy:
+
+      fail-fast: false
+
+      matrix:
+        lua-version:
+          - 5.1
+          - 5.2
+          - 5.3
+          - 5.4
+          - luajit
+
+    steps:
+
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: ${{ matrix.lua-version != 'luajit' }}
+
+      - uses: luarocks/gh-actions-lua@v11
+        with:
+          luaVersion: ${{ matrix.lua-version }}
+
+      - uses: luarocks/gh-actions-luarocks@v6
+        with:
+          luaRocksVersion: 3.12.2
+
+      - name: Install LuaFileSystem
+        run: luarocks install luafilesystem
