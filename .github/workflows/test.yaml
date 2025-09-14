@@ -1,0 +1,80 @@
+name: LuaRocks issue 1822
+
+on: push
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+
+      fail-fast: false
+
+      matrix:
+
+        lua-version:
+          - 5.1
+          - 5.2
+          - 5.3
+          - 5.4
+          - luajit
+          - luajit-openresty
+
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+
+    steps:
+
+      - uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
+        if: ${{ runner.os == 'Windows' && !startsWith(matrix.lua-version, 'luajit') }}
+
+      - name: Install Fossil (Unix)
+        if: ${{ runner.os != 'Windows' }}
+        run: |
+          if [ "${{ runner.os }}" = "Linux" ]; then
+            sudo apt install -y fossil
+          elif [ "${{ runner.os }}" = "macOS" ]; then
+            brew install fossil
+          else
+            echo "Unknown runner OS"
+            exit 1
+          fi
+
+      - name: Install Fossil 2.26 (Windows)
+        if: ${{ runner.os == 'Windows' }}
+        shell: cmd
+        env:
+          FOSSIL_ZIP: ${{ runner.temp }}\fossil.zip
+          FOSSIL_APP_DIR: ${{ runner.temp }}\fossil-app
+        run: |
+          IF EXIST "${{ env.FOSSIL_ZIP }}" DEL "${{ env.FOSSIL_ZIP }}"
+          IF "${{ runner.arch }}"=="X86" curl --output "${{ env.FOSSIL_ZIP }}" -kL "https://fossil-scm.org/home/uv/fossil-w32-2.26.zip"
+          IF "${{ runner.arch }}"=="X64" curl --output "${{ env.FOSSIL_ZIP }}" -kL "https://fossil-scm.org/home/uv/fossil-w64-2.26.zip"
+          IF "${{ runner.arch }}"=="ARM64" curl --output "${{ env.FOSSIL_ZIP }}" -kL "https://fossil-scm.org/home/uv/fossil-win-arm-2.26.zip"
+          IF NOT EXIST "${{ env.FOSSIL_ZIP }}" (
+            ECHO Failed to download fossil
+            EXIT /B 1
+          )
+          IF EXIST "${{ env.FOSSIL_APP_DIR }}\" RMDIR /S /Q "${{ env.FOSSIL_APP_DIR }}"
+          MKDIR "${{ env.FOSSIL_APP_DIR }}"
+          "C:\Program Files\7-zip\7z.exe" "-o${{ env.FOSSIL_APP_DIR }}" x "${{ env.FOSSIL_ZIP }}"
+          ECHO ${{ env.FOSSIL_APP_DIR }}>>${{ github.path }}
+
+      - name: Checkout LSQLite3 v0.9.6
+        run: |
+          fossil open "https://lua.sqlite.org/home/timeline"
+          fossil checkout "v0.9.6"
+
+      - uses: luarocks/gh-actions-lua@989f8e6ffba55ce1817e236478c98558e598776c # v11
+        with:
+          luaVersion: ${{ matrix.lua-version }}
+          buildCache: false
+
+      - uses: luarocks/gh-actions-luarocks@7c85eeff60655651b444126f2a78be784e836a0a # v6
+        with:
+          luaRocksVersion: 3.12.2
+
+      - name: Build and Install LSQLite3 v0.9.6 (bundled with SQLite)
+        run: luarocks make lsqlite3complete-0.9.6-1.rockspec
