@@ -1,0 +1,147 @@
+name: Test
+
+on: push
+
+jobs:
+  test:
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: cmd
+
+    strategy:
+
+      fail-fast: false
+
+      matrix:
+        use-fix:
+          - false
+          - true
+
+        lua-version:
+          - 5.1.5
+          - 5.2.4
+          - 5.3.6
+          - 5.4.8
+
+        MSYS2-CONFIG:
+          # MinGW-w64 with MSVCRT
+          - sys: mingw64
+            env: x86_64
+
+          # MinGW-w64 with UCRT
+          - sys: ucrt64
+            env: ucrt-x86_64
+
+          # LLVM-MinGW-w64
+          - sys: clang64
+            env: clang-x86_64
+
+    env:
+      MSYS2_SED: C:\msys64\usr\bin\sed.exe
+      MSYS2_BASH: C:\msys64\usr\bin\bash.exe
+      MSYS2_MINGW_W64_DIR: C:\msys64\${{ matrix.MSYS2-CONFIG.sys }}
+      MSYS2_PACKAGES: mingw-w64-${{ matrix.MSYS2-CONFIG.env }}-cc mingw-w64-${{ matrix.MSYS2-CONFIG.env }}-make
+
+    steps:
+
+      # When running many concurrent jobs,
+      # pacman might fail to download packages
+      # from MSYS2 servers due a high load.
+      # So, retry the installation a few times
+      - name: Install C compiler, GNU Make
+        run: |
+          SET "TRIES=0"
+          SET "MAX_TRIES=5"
+          SET "SECS_TO_WAIT=1"
+
+          GOTO :INSTALL_FROM_MSYS2
+
+          :INSTALL_FROM_MSYS2
+          ${{ env.MSYS2_BASH }} -lc "pacman -S ${{ env.MSYS2_PACKAGES }} --noconfirm"
+
+          IF %ERRORLEVEL% EQU 0 (
+            ECHO ${{ env.MSYS2_MINGW_W64_DIR }}\bin>>${{ github.path }}
+          ) ELSE (
+            SET /A "TRIES=TRIES+1"
+            IF %TRIES% LSS %MAX_TRIES% (
+              ECHO Attempt %TRIES% out of %MAX_TRIES% to install packages failed
+              SET /A "SECS_TO_WAIT*=2"
+              ECHO Waiting %SECS_TO_WAIT% seconds to retry
+              SLEEP %SECS_TO_WAIT%
+              GOTO :INSTALL_FROM_MSYS2
+            ) ELSE (
+              ECHO Failed to install MinGW-w64 and dependencies from MSYS2
+              EXIT /B 1
+            )
+          )
+
+      - name: Test C compiler and GNU Make
+        run: |
+          cc --version
+          mingw32-make --version
+
+      - name: Download Lua ${{ matrix.lua-version }}
+        run: curl -kLO "https://lua.org/ftp/lua-${{ matrix.lua-version }}.tar.gz"
+
+      - name: Extract Lua ${{ matrix.lua-version }}
+        run: tar -xf "lua-${{ matrix.lua-version }}.tar.gz"
+
+      - name: Patch Lua 5.1 Makefile to remove shell comment
+        if: ${{ startsWith(matrix.lua-version, '5.1.') }}
+        run: |
+          CD "lua-${{ matrix.lua-version }}"
+          CD "src"
+          ${{ env.MSYS2_SED }} -e "s|# DLL needs all object files||" -i Makefile
+
+      - name: Build Lua ${{ matrix.lua-version }}
+        run: mingw32-make -C "lua-${{ matrix.lua-version }}" "SHELL=%COMSPEC%" mingw
+
+      - name: Install Lua ${{ matrix.lua-version }}
+        run: |
+          CD "lua-${{ matrix.lua-version }}"
+          CD "src"
+          SET "LUA_DIR=${{ github.workspace }}\.lua"
+          SET "LUA_BINDIR=%LUA_DIR%\bin"
+          SET "LUA_INCDIR=%LUA_DIR%\include"
+          SET "LUA_LIBDIR=%LUA_DIR%\lib"
+          SET "LUA_VERSION=${{ matrix.lua-version}}"
+          SET "LUA_SHORT=%LUA_VERSION:~0,4%"
+          IF EXIST "%LUA_DIR%\" RMDIR /S /Q "%LUA_DIR%"
+          MKDIR "%LUA_DIR%"
+          MKDIR "%LUA_BINDIR%"
+          MKDIR "%LUA_INCDIR%"
+          MKDIR "%LUA_LIBDIR%"
+          @COPY lua.exe "%LUA_BINDIR%"
+          @COPY luac.exe "%LUA_BINDIR%"
+          @COPY *.dll "%LUA_BINDIR%"
+          @COPY *.dll "%LUA_LIBDIR%"
+          IF "%LUA_SHORT%" EQU "5.1." (
+            FOR %%F IN (lua.h luaconf.h lualib.h lauxlib.h ..\etc\lua.hpp) DO @COPY %%F "%LUA_INCDIR%"
+          ) ELSE (
+            FOR %%F IN (lua.h luaconf.h lualib.h lauxlib.h lua.hpp) DO @COPY %%F "%LUA_INCDIR%"
+          )
+          ECHO %LUA_BINDIR%>> ${{ github.path }}
+
+      - uses: luarocks/gh-actions-luarocks@v6
+        if: ${{ ! matrix.use-fix }}
+        with:
+          luaRocksVersion: 3.12.2
+
+      - uses: luau-project/gh-actions-luarocks@trim-msvcrt
+        if: ${{ matrix.use-fix }}
+        with:
+          luaRocksVersion: 3.12.2
+
+      - name: Configure LuaRocks for MinGW-w64
+        run: |
+          luarocks config "variables.CC" "cc"
+          luarocks config "variables.LD" "cc"
+          luarocks config "external_deps_dirs[1]" "${{ env.MSYS2_MINGW_W64_DIR }}"
+
+      - name: Show LuaRocks config
+        run: luarocks config
+
+      - name: Install LuaSocket
+        run: luarocks install luasocket
