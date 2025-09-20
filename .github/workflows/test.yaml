@@ -1,0 +1,15 @@
+name: Test
+
+on: push
+
+jobs:
+  test:
+    runs-on: windows-latest
+
+    steps:
+
+      - name: List OpenSSL Directory
+        run: Get-ChildItem "$env:ProgramFiles\OpenSSL" -Recurse -File | Select-Object -ExpandProperty FullName
+
+      - name: List MinGW-w64 Directory
+        run: Get-ChildItem "C:\mingw64" -Recurse -File | Select-Object -ExpandProperty FullName
