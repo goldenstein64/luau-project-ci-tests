@@ -1,0 +1,119 @@
+name: Test
+
+on: push
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+
+      matrix:
+        os:
+          - ubuntu-latest
+
+    steps:
+      - name: Download
+        run: curl -L -O "https://github.com/luau-project/setup-lua/archive/msys2-support.tar.gz"
+
+      - name: Extract
+        run: tar -xf "msys2-support.tar.gz"
+
+      - name: Rename directory
+        run: mv setup-lua-msys2-support setup-lua
+
+      - name: Setup node 24
+        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
+        with:
+          node-version: 24
+
+      - name: Install packages
+        working-directory: setup-lua
+        run: npm install
+
+      - name: Build
+        working-directory: setup-lua
+        run: npm run build
+
+      - name: Pack
+        run: sh ${{ github.workspace }}/setup-lua/pack.sh ${{ github.workspace }}/setup-lua
+
+      - uses: actions/upload-artifact@v6
+        with:
+          path: setup-lua.tar.gz
+          name: setup-lua
+          retention-days: 1
+
+  msys2:
+    runs-on: ${{ matrix.os }}
+
+    needs: build
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    strategy:
+      fail-fast: false
+
+      matrix:
+
+        os:
+          - windows-latest
+
+        lua-version:
+          - 5.1
+          - 5.2
+          - 5.3
+          - 5.4
+          - 5.5
+          - luajit
+          - openresty
+
+        sys:
+          - UCRT64
+          - CLANG64
+
+    steps:
+
+      - uses: msys2/setup-msys2@v2
+        id: msys2
+        with:
+          msystem: ${{ matrix.sys }}
+          install: |
+            base-devel
+            unzip
+          pacboy: |
+            cc:p
+            make:p
+
+      - uses: actions/checkout@v6
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: setup-lua
+
+      - name: Unpack setup-lua
+        run: tar -xf setup-lua.tar.gz
+
+      - name: Setup Lua
+        run: |
+          env \
+            LUA_VERSION=${{ matrix.lua-version }} \
+            "/c/Program Files/nodejs/node.exe" \
+            ./setup-lua/dist/cli/index.js
+
+      - name: Test Lua
+        run: lua.exe -v
+
+      - name: Test LuaRocks
+        run: luarocks --version
+
+      - name: Show LuaRocks config
+        run: luarocks config
+
+      - name: Install LuaFileSystem
+        run: luarocks install luafilesystem
+
+      - name: Remove LuaFileSystem
+        run: luarocks remove luafilesystem
