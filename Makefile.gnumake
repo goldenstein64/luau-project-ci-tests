@@ -1,0 +1,321 @@
+#
+# How to build:
+# 	gfortran:
+# 		mingw32-make -f Makefile.gnumake gfortran
+# 	flang:
+# 		mingw32-make -f Makefile.gnumake flang
+# 	lfortran:
+# 		mingw32-make -f Makefile.gnumake lfortran
+#
+
+MINPACK_URL_BASE = https://www.netlib.org/minpack/
+OUTPUT_FILE = libminpack.dll
+MINPACK_DEF = minpack.def
+
+FC = flang
+FFLAGS =
+
+LD = $(FC)
+LD_OUT_FLAG = -o
+LDFLAGS = -shared
+LIBS =
+OBJCOPY = llvm-objcopy
+
+DOWNLOADER = curl
+DOWNLOADER_OUT_FLAG = -o
+DOWNLOADER_FLAGS = -k
+RM_F = rm -f
+
+# DO NOT edit below this line
+
+SRC_FILES = chkder.f \
+	enorm.f \
+	hybrd1.f \
+	hybrj.f \
+	lmdif1.f \
+	lmstr1.f \
+	qrfac.f \
+	r1updt.f \
+	dogleg.f \
+	fdjac1.f \
+	hybrd.f \
+	lmder1.f \
+	lmdif.f \
+	lmstr.f \
+	qrsolv.f \
+	rwupdt.f \
+	dpmpar.f \
+	fdjac2.f \
+	hybrj1.f \
+	lmder.f \
+	lmpar.f \
+	qform.f \
+	r1mpyq.f
+
+OBJ_FILES = chkder.obj \
+	enorm.obj \
+	hybrd1.obj \
+	hybrj.obj \
+	lmdif1.obj \
+	lmstr1.obj \
+	qrfac.obj \
+	r1updt.obj \
+	dogleg.obj \
+	fdjac1.obj \
+	hybrd.obj \
+	lmder1.obj \
+	lmdif.obj \
+	lmstr.obj \
+	qrsolv.obj \
+	rwupdt.obj \
+	dpmpar.obj \
+	fdjac2.obj \
+	hybrj1.obj \
+	lmder.obj \
+	lmpar.obj \
+	qform.obj \
+	r1mpyq.obj
+
+all: $(OUTPUT_FILE)
+
+clean:
+	$(RM_F) *.def *.so *.dll *.dylib *.exp *.lib *.dll.a *.a $(OBJ_FILES)
+
+download: $(SRC_FILES)
+
+$(OUTPUT_FILE): $(MINPACK_DEF) $(OBJ_FILES)
+	$(LD) $(LD_OUT_FLAG) $@ $(LDFLAGS) $(LDFLAGS_EXTRA) $(OBJ_FILES) $(LIBS)
+
+$(MINPACK_DEF):
+	echo EXPORTS>$@
+	echo chkder_>>$@
+	echo dpmpar_>>$@
+	echo enorm_>>$@
+	echo hybrd1_>>$@
+	echo hybrj1_>>$@
+	echo hybrj_>>$@
+	echo lmder1_>>$@
+	echo lmder_>>$@
+	echo lmdif1_>>$@
+	echo lmdif_>>$@
+	echo lmstr1_>>$@
+	echo lmstr_>>$@
+
+chkder.f:
+	$(DOWNLOADER) $(DOWNLOADER_OUT_FLAG) $@ $(DOWNLOADER_FLAGS) "$(MINPACK_URL_BASE)$@"
+
+enorm.f:
+	$(DOWNLOADER) $(DOWNLOADER_OUT_FLAG) $@ $(DOWNLOADER_FLAGS) "$(MINPACK_URL_BASE)$@"
+
+hybrd1.f:
+	$(DOWNLOADER) $(DOWNLOADER_OUT_FLAG) $@ $(DOWNLOADER_FLAGS) "$(MINPACK_URL_BASE)$@"
+
+hybrj.f:
+	$(DOWNLOADER) $(DOWNLOADER_OUT_FLAG) $@ $(DOWNLOADER_FLAGS) "$(MINPACK_URL_BASE)$@"
+
+lmdif1.f:
+	$(DOWNLOADER) $(DOWNLOADER_OUT_FLAG) $@ $(DOWNLOADER_FLAGS) "$(MINPACK_URL_BASE)$@"
+
+lmstr1.f:
+	$(DOWNLOADER) $(DOWNLOADER_OUT_FLAG) $@ $(DOWNLOADER_FLAGS) "$(MINPACK_URL_BASE)$@"
+
+qrfac.f:
+	$(DOWNLOADER) $(DOWNLOADER_OUT_FLAG) $@ $(DOWNLOADER_FLAGS) "$(MINPACK_URL_BASE)$@"
+
+r1updt.f:
+	$(DOWNLOADER) $(DOWNLOADER_OUT_FLAG) $@ $(DOWNLOADER_FLAGS) "$(MINPACK_URL_BASE)$@"
+
+dogleg.f:
+	$(DOWNLOADER) $(DOWNLOADER_OUT_FLAG) $@ $(DOWNLOADER_FLAGS) "$(MINPACK_URL_BASE)$@"
+
+fdjac1.f:
+	$(DOWNLOADER) $(DOWNLOADER_OUT_FLAG) $@ $(DOWNLOADER_FLAGS) "$(MINPACK_URL_BASE)$@"
+
+hybrd.f:
+	$(DOWNLOADER) $(DOWNLOADER_OUT_FLAG) $@ $(DOWNLOADER_FLAGS) "$(MINPACK_URL_BASE)$@"
+
+lmder1.f:
+	$(DOWNLOADER) $(DOWNLOADER_OUT_FLAG) $@ $(DOWNLOADER_FLAGS) "$(MINPACK_URL_BASE)$@"
+
+lmdif.f:
+	$(DOWNLOADER) $(DOWNLOADER_OUT_FLAG) $@ $(DOWNLOADER_FLAGS) "$(MINPACK_URL_BASE)$@"
+
+lmstr.f:
+	$(DOWNLOADER) $(DOWNLOADER_OUT_FLAG) $@ $(DOWNLOADER_FLAGS) "$(MINPACK_URL_BASE)$@"
+
+qrsolv.f:
+	$(DOWNLOADER) $(DOWNLOADER_OUT_FLAG) $@ $(DOWNLOADER_FLAGS) "$(MINPACK_URL_BASE)$@"
+
+rwupdt.f:
+	$(DOWNLOADER) $(DOWNLOADER_OUT_FLAG) $@ $(DOWNLOADER_FLAGS) "$(MINPACK_URL_BASE)$@"
+
+dpmpar.f:
+	$(DOWNLOADER) $(DOWNLOADER_OUT_FLAG) $@ $(DOWNLOADER_FLAGS) "$(MINPACK_URL_BASE)$@"
+
+fdjac2.f:
+	$(DOWNLOADER) $(DOWNLOADER_OUT_FLAG) $@ $(DOWNLOADER_FLAGS) "$(MINPACK_URL_BASE)$@"
+
+hybrj1.f:
+	$(DOWNLOADER) $(DOWNLOADER_OUT_FLAG) $@ $(DOWNLOADER_FLAGS) "$(MINPACK_URL_BASE)$@"
+
+lmder.f:
+	$(DOWNLOADER) $(DOWNLOADER_OUT_FLAG) $@ $(DOWNLOADER_FLAGS) "$(MINPACK_URL_BASE)$@"
+
+lmpar.f:
+	$(DOWNLOADER) $(DOWNLOADER_OUT_FLAG) $@ $(DOWNLOADER_FLAGS) "$(MINPACK_URL_BASE)$@"
+
+qform.f:
+	$(DOWNLOADER) $(DOWNLOADER_OUT_FLAG) $@ $(DOWNLOADER_FLAGS) "$(MINPACK_URL_BASE)$@"
+
+r1mpyq.f:
+	$(DOWNLOADER) $(DOWNLOADER_OUT_FLAG) $@ $(DOWNLOADER_FLAGS) "$(MINPACK_URL_BASE)$@"
+
+chkder.obj: chkder.f
+	$(FC) -c $(FFLAGS) $(FFLAGS_EXTRA) -o $@ $<
+
+enorm.obj: enorm.f
+	$(FC) -c $(FFLAGS) $(FFLAGS_EXTRA) -o $@ $<
+
+hybrd1.obj: hybrd1.f
+	$(FC) -c $(FFLAGS) $(FFLAGS_EXTRA) -o $@ $<
+
+hybrj.obj: hybrj.f
+	$(FC) -c $(FFLAGS) $(FFLAGS_EXTRA) -o $@ $<
+
+lmdif1.obj: lmdif1.f
+	$(FC) -c $(FFLAGS) $(FFLAGS_EXTRA) -o $@ $<
+
+lmstr1.obj: lmstr1.f
+	$(FC) -c $(FFLAGS) $(FFLAGS_EXTRA) -o $@ $<
+
+qrfac.obj: qrfac.f
+	$(FC) -c $(FFLAGS) $(FFLAGS_EXTRA) -o $@ $<
+
+r1updt.obj: r1updt.f
+	$(FC) -c $(FFLAGS) $(FFLAGS_EXTRA) -o $@ $<
+
+dogleg.obj: dogleg.f
+	$(FC) -c $(FFLAGS) $(FFLAGS_EXTRA) -o $@ $<
+
+fdjac1.obj: fdjac1.f
+	$(FC) -c $(FFLAGS) $(FFLAGS_EXTRA) -o $@ $<
+
+hybrd.obj: hybrd.f
+	$(FC) -c $(FFLAGS) $(FFLAGS_EXTRA) -o $@ $<
+
+lmder1.obj: lmder1.f
+	$(FC) -c $(FFLAGS) $(FFLAGS_EXTRA) -o $@ $<
+
+lmdif.obj: lmdif.f
+	$(FC) -c $(FFLAGS) $(FFLAGS_EXTRA) -o $@ $<
+
+lmstr.obj: lmstr.f
+	$(FC) -c $(FFLAGS) $(FFLAGS_EXTRA) -o $@ $<
+
+qrsolv.obj: qrsolv.f
+	$(FC) -c $(FFLAGS) $(FFLAGS_EXTRA) -o $@ $<
+
+rwupdt.obj: rwupdt.f
+	$(FC) -c $(FFLAGS) $(FFLAGS_EXTRA) -o $@ $<
+
+dpmpar.obj: dpmpar.f
+	$(FC) -c $(FFLAGS) $(FFLAGS_EXTRA) -o $@ $<
+
+fdjac2.obj: fdjac2.f
+	$(FC) -c $(FFLAGS) $(FFLAGS_EXTRA) -o $@ $<
+
+hybrj1.obj: hybrj1.f
+	$(FC) -c $(FFLAGS) $(FFLAGS_EXTRA) -o $@ $<
+
+lmder.obj: lmder.f
+	$(FC) -c $(FFLAGS) $(FFLAGS_EXTRA) -o $@ $<
+
+lmpar.obj: lmpar.f
+	$(FC) -c $(FFLAGS) $(FFLAGS_EXTRA) -o $@ $<
+
+qform.obj: qform.f
+	$(FC) -c $(FFLAGS) $(FFLAGS_EXTRA) -o $@ $<
+
+r1mpyq.obj: r1mpyq.f
+	$(FC) -c $(FFLAGS) $(FFLAGS_EXTRA) -o $@ $<
+
+gfortran:
+	$(MAKE) -f "Makefile.gnumake" "OUTPUT_FILE=libminpack.dll" "FC=gfortran" "FFLAGS_EXTRA=-ffixed-form -std=legacy" "LDFLAGS_EXTRA=-Wl,--out-implib,libminpack.dll.a $(MINPACK_DEF)"
+
+flang:
+	$(MAKE) -f "Makefile.gnumake" "FC=flang" "FFLAGS_EXTRA=-ffixed-form" "LDFLAGS_EXTRA=-Xlinker --out-implib -Xlinker libminpack.dll.a $(MINPACK_DEF)"
+
+lfortran:
+	$(MAKE) -f "Makefile.gnumake" "$(MINPACK_DEF)"
+	$(MAKE) -f "Makefile.gnumake" "FC=lfortran" "FFLAGS_EXTRA=--fixed-form --std legacy" "LD=clang" "LDFLAGS=-shared" "LDFLAGS_EXTRA=-Wl,--out-implib,libminpack.dll.a $(MINPACK_DEF)" $(OBJ_FILES)
+	$(OBJCOPY) --redefine-sym=chkder=chkder_ chkder.obj chkder.obj
+	$(OBJCOPY) --redefine-sym=dogleg=dogleg_ dogleg.obj dogleg.obj
+	$(OBJCOPY) --redefine-sym=dpmpar=dpmpar_ dpmpar.obj dpmpar.obj
+	$(OBJCOPY) --redefine-sym=enorm=enorm_ enorm.obj enorm.obj
+	$(OBJCOPY) --redefine-sym=fdjac1=fdjac1_ fdjac1.obj fdjac1.obj
+	$(OBJCOPY) --redefine-sym=fdjac2=fdjac2_ fdjac2.obj fdjac2.obj
+	$(OBJCOPY) --redefine-sym=hybrd=hybrd_ hybrd.obj hybrd.obj
+	$(OBJCOPY) --redefine-sym=hybrd1=hybrd1_ hybrd1.obj hybrd1.obj
+	$(OBJCOPY) --redefine-sym=hybrj=hybrj_ hybrj.obj hybrj.obj
+	$(OBJCOPY) --redefine-sym=hybrj1=hybrj1_ hybrj1.obj hybrj1.obj
+	$(OBJCOPY) --redefine-sym=lmder=lmder_ lmder.obj lmder.obj
+	$(OBJCOPY) --redefine-sym=lmder1=lmder1_ lmder1.obj lmder1.obj
+	$(OBJCOPY) --redefine-sym=lmdif=lmdif_ lmdif.obj lmdif.obj
+	$(OBJCOPY) --redefine-sym=lmdif1=lmdif1_ lmdif1.obj lmdif1.obj
+	$(OBJCOPY) --redefine-sym=lmpar=lmpar_ lmpar.obj lmpar.obj
+	$(OBJCOPY) --redefine-sym=lmstr=lmstr_ lmstr.obj lmstr.obj
+	$(OBJCOPY) --redefine-sym=lmstr1=lmstr1_ lmstr1.obj lmstr1.obj
+	$(OBJCOPY) --redefine-sym=qform=qform_ qform.obj qform.obj
+	$(OBJCOPY) --redefine-sym=qrfac=qrfac_ qrfac.obj qrfac.obj
+	$(OBJCOPY) --redefine-sym=qrsolv=qrsolv_ qrsolv.obj qrsolv.obj
+	$(OBJCOPY) --redefine-sym=r1mpyq=r1mpyq_ r1mpyq.obj r1mpyq.obj
+	$(OBJCOPY) --redefine-sym=r1updt=r1updt_ r1updt.obj r1updt.obj
+	$(OBJCOPY) --redefine-sym=rwupdt=rwupdt_ rwupdt.obj rwupdt.obj
+	$(OBJCOPY) --redefine-sym=dpmpar=dpmpar_ lmstr.obj lmstr.obj
+	$(OBJCOPY) --redefine-sym=dpmpar=dpmpar_ fdjac2.obj fdjac2.obj
+	$(OBJCOPY) --redefine-sym=dpmpar=dpmpar_ lmder.obj lmder.obj
+	$(OBJCOPY) --redefine-sym=dpmpar=dpmpar_ lmpar.obj lmpar.obj
+	$(OBJCOPY) --redefine-sym=dpmpar=dpmpar_ dogleg.obj dogleg.obj
+	$(OBJCOPY) --redefine-sym=dpmpar=dpmpar_ fdjac1.obj fdjac1.obj
+	$(OBJCOPY) --redefine-sym=dpmpar=dpmpar_ hybrd.obj hybrd.obj
+	$(OBJCOPY) --redefine-sym=dpmpar=dpmpar_ lmdif.obj lmdif.obj
+	$(OBJCOPY) --redefine-sym=dpmpar=dpmpar_ chkder.obj chkder.obj
+	$(OBJCOPY) --redefine-sym=dpmpar=dpmpar_ hybrj.obj hybrj.obj
+	$(OBJCOPY) --redefine-sym=dpmpar=dpmpar_ qrfac.obj qrfac.obj
+	$(OBJCOPY) --redefine-sym=dpmpar=dpmpar_ r1updt.obj r1updt.obj
+	$(OBJCOPY) --redefine-sym=hybrd=hybrd_ hybrd1.obj hybrd1.obj
+	$(OBJCOPY) --redefine-sym=enorm=enorm_ lmdif.obj lmdif.obj
+	$(OBJCOPY) --redefine-sym=enorm=enorm_ lmstr.obj lmstr.obj
+	$(OBJCOPY) --redefine-sym=enorm=enorm_ lmder.obj lmder.obj
+	$(OBJCOPY) --redefine-sym=enorm=enorm_ lmpar.obj lmpar.obj
+	$(OBJCOPY) --redefine-sym=enorm=enorm_ hybrj.obj hybrj.obj
+	$(OBJCOPY) --redefine-sym=enorm=enorm_ qrfac.obj qrfac.obj
+	$(OBJCOPY) --redefine-sym=enorm=enorm_ dogleg.obj dogleg.obj
+	$(OBJCOPY) --redefine-sym=enorm=enorm_ hybrd.obj hybrd.obj
+	$(OBJCOPY) --redefine-sym=qrfac=qrfac_ lmder.obj lmder.obj
+	$(OBJCOPY) --redefine-sym=qrfac=qrfac_ hybrj.obj hybrj.obj
+	$(OBJCOPY) --redefine-sym=qrfac=qrfac_ hybrd.obj hybrd.obj
+	$(OBJCOPY) --redefine-sym=qrfac=qrfac_ lmdif.obj lmdif.obj
+	$(OBJCOPY) --redefine-sym=qrfac=qrfac_ lmstr.obj lmstr.obj
+	$(OBJCOPY) --redefine-sym=qform=qform_ hybrj.obj hybrj.obj
+	$(OBJCOPY) --redefine-sym=qform=qform_ hybrd.obj hybrd.obj
+	$(OBJCOPY) --redefine-sym=r1updt=r1updt_ hybrj.obj hybrj.obj
+	$(OBJCOPY) --redefine-sym=r1updt=r1updt_ hybrd.obj hybrd.obj
+	$(OBJCOPY) --redefine-sym=r1mpyq=r1mpyq_ hybrj.obj hybrj.obj
+	$(OBJCOPY) --redefine-sym=r1mpyq=r1mpyq_ hybrd.obj hybrd.obj
+	$(OBJCOPY) --redefine-sym=dogleg=dogleg_ hybrj.obj hybrj.obj
+	$(OBJCOPY) --redefine-sym=dogleg=dogleg_ hybrd.obj hybrd.obj
+	$(OBJCOPY) --redefine-sym=lmdif=lmdif_ lmdif1.obj lmdif1.obj
+	$(OBJCOPY) --redefine-sym=lmstr=lmstr_ lmstr1.obj lmstr1.obj
+	$(OBJCOPY) --redefine-sym=fdjac1=fdjac1_ hybrd.obj hybrd.obj
+	$(OBJCOPY) --redefine-sym=lmder=lmder_ lmder1.obj lmder1.obj
+	$(OBJCOPY) --redefine-sym=fdjac2=fdjac2_ lmdif.obj lmdif.obj
+	$(OBJCOPY) --redefine-sym=lmpar=lmpar_ lmdif.obj lmdif.obj
+	$(OBJCOPY) --redefine-sym=lmpar=lmpar_ lmstr.obj lmstr.obj
+	$(OBJCOPY) --redefine-sym=lmpar=lmpar_ lmder.obj lmder.obj
+	$(OBJCOPY) --redefine-sym=rwupdt=rwupdt_ lmstr.obj lmstr.obj
+	$(OBJCOPY) --redefine-sym=hybrj=hybrj_ hybrj1.obj hybrj1.obj
+	$(OBJCOPY) --redefine-sym=qrsolv=qrsolv_ lmpar.obj lmpar.obj
+	$(MAKE) -f "Makefile.gnumake" "FC=lfortran" "FFLAGS_EXTRA=--fixed-form --std legacy" "LDFLAGS=--shared" "LDFLAGS_EXTRA=-Wl,--out-implib,libminpack.dll.a $(MINPACK_DEF)" $(OUTPUT_FILE)
+
+.PHONY: all clean download gfortran flang lfortran

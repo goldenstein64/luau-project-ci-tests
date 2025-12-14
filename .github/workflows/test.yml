@@ -1,0 +1,200 @@
+name: Test
+
+on: push
+
+jobs:
+  nmake-test:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler:
+          - lfortran
+          - flang
+          - gfortran
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ilammy/msvc-dev-cmd@v1
+        name: Setup MSVC
+
+      - name: Restore minpack
+        id: restore-minpack
+        uses: actions/cache/restore@v5
+        with:
+          path: '*.f'
+          key: minpack-src
+          enableCrossOsArchive: true
+
+      - name: Download minpack
+        if: ${{ steps.restore-minpack.outputs.cache-hit != 'true' }}
+        run: nmake "/F" "Makefile.msvc" download
+
+      - name: Save minpack
+        if: ${{ steps.restore-minpack.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v5
+        with:
+          path: '*.f'
+          key: minpack-src
+          enableCrossOsArchive: true
+
+      - name: Restore compiler environment
+        if: ${{ matrix.compiler != 'gfortran' }}
+        id: restore-compiler-env
+        uses: actions/cache/restore@v5
+        with:
+          path: compiler-env-${{ matrix.compiler }}
+          key: compiler-env-${{ matrix.compiler }}
+          enableCrossOsArchive: true
+
+      - name: Setup conda environment (lfortran and flang)
+        if: ${{ matrix.compiler != 'gfortran' && steps.restore-compiler-env.outputs.cache-hit != 'true' }}
+        run: |
+          & "$env:CONDA\shell\condabin\conda-hook.ps1";
+
+          if ("${{ matrix.compiler}}" -eq "lfortran")
+          {
+            conda create --yes -c conda-forge -p "compiler-env-${{ matrix.compiler }}" "clang" "llvm-tools" "${{ matrix.compiler }}"
+          }
+          elseif ("${{ matrix.compiler}}" -eq "flang")
+          {
+            conda create --yes -c conda-forge -p "compiler-env-${{ matrix.compiler }}" "${{ matrix.compiler }}_win-64" "${{ matrix.compiler }}-rt_win-64"
+          }
+          else
+          {
+            Write-Host "Unknown matrix compiler";
+            exit 1;
+          }
+
+      - name: Save conda environment
+        if: ${{ matrix.compiler != 'gfortran' && steps.restore-compiler-env.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v5
+        with:
+          path: compiler-env-${{ matrix.compiler }}
+          key: compiler-env-${{ matrix.compiler }}
+          enableCrossOsArchive: true
+
+      - name: Build (lfortran and flang)
+        if: ${{ matrix.compiler != 'gfortran' }}
+        run: |
+          & "$env:CONDA\shell\condabin\conda-hook.ps1";
+
+          conda activate "${{ github.workspace }}\compiler-env-${{ matrix.compiler }}"
+
+          ${{ matrix.compiler }} --version
+
+          nmake "/F" "Makefile.msvc" "${{ matrix.compiler }}"
+
+      - name: Build (gfortran)
+        if: ${{ matrix.compiler == 'gfortran' }}
+        run: nmake "/F" "Makefile.msvc" "${{ matrix.compiler }}"
+
+      - name: Show exported DLL functions
+        run: |
+          if ("${{ matrix.compiler }}" -eq "gfortran")
+          {
+            dumpbin /EXPORTS libminpack.dll
+          }
+          else
+          {
+            dumpbin /EXPORTS minpack.dll
+          }
+
+      - name: List directory
+        run: dir .
+
+  gnumake-test:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    strategy:
+      fail-fast: false
+      matrix:
+        msys2-config:
+          - { sys: ucrt64, env: ucrt-x86_64, fc: gfortran }
+          - { sys: clang64, env: clang-x86_64, fc: flang }
+          - { sys: clang64, env: clang-x86_64, fc: lfortran }
+    steps:
+      - name: Setup MSYS2 (flang and lfortran)
+        if: ${{ matrix.msys2-config.fc != 'gfortran' }}
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{ matrix.msys2-config.sys }}
+          update: true
+          install: |
+            curl
+            git
+            mingw-w64-${{ matrix.msys2-config.env }}-cc
+            mingw-w64-${{ matrix.msys2-config.env }}-${{ matrix.msys2-config.fc }}
+            mingw-w64-${{ matrix.msys2-config.env }}-make
+
+      - name: Setup MSYS2 (gfortran)
+        if: ${{ matrix.msys2-config.fc == 'gfortran' }}
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{ matrix.msys2-config.sys }}
+          update: true
+          install: |
+            curl
+            git
+            mingw-w64-${{ matrix.msys2-config.env }}-cc
+            mingw-w64-${{ matrix.msys2-config.env }}-gcc-fortran
+            mingw-w64-${{ matrix.msys2-config.env }}-make
+
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Restore minpack
+        id: restore-minpack
+        uses: actions/cache/restore@v5
+        with:
+          path: '*.f'
+          key: minpack-src
+          enableCrossOsArchive: true
+
+      - name: Download minpack
+        if: ${{ steps.restore-minpack.outputs.cache-hit != 'true' }}
+        run: mingw32-make -f "Makefile.gnumake" download
+
+      - name: Save minpack
+        if: ${{ steps.restore-minpack.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v5
+        with:
+          path: '*.f'
+          key: minpack-src
+          enableCrossOsArchive: true
+
+      - name: Build minpack
+        run: mingw32-make -f "Makefile.gnumake" ${{ matrix.msys2-config.fc }}
+
+      - name: Show exported DLL functions
+        run: |
+          echo "$(/usr/bin/env)" | while IFS=$(printf "\n") read -r line; do
+            if [[ "$line" =~ ^([^=]+)=(.*)$ && "${BASH_REMATCH[1]}" == "ProgramFiles(x86)" ]]; then
+              vswhere="${BASH_REMATCH[2]}\\Microsoft Visual Studio\\Installer\\vswhere.exe";
+              if test -e "$vswhere"; then
+                vcvarsall=$("$vswhere" -find "**\\vcvarsall.bat");
+                if test -e "$vcvarsall"; then
+                  cmd="$WINDIR\\System32\\cmd.exe"
+                  if test -e "$cmd"; then
+                    "$cmd" "//C" "$vcvarsall" x64 "&&" "dumpbin" "//EXPORTS" "libminpack.dll"
+                  else
+                    echo "cmd not found at '$cmd'";
+                    exit 1;
+                  fi
+                else
+                  echo "VCVARSALL.BAT not found at '$vcvarsall'";
+                  exit 1;
+                fi
+              else
+                echo "vswhere not found at '$vswhere'";
+                exit 1;
+              fi
+              break;
+            fi
+          done
+
+      - name: List directory
+        run: ls -la .
