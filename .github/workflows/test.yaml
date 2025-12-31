@@ -1,0 +1,63 @@
+name: Test
+
+on: push
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - windows-latest
+          - ubuntu-latest
+          - macos-latest
+
+    steps:
+      - name: Create directories, executable files and set the system PATH environment variable
+        shell: pwsh
+        run: |
+          $pathlist = New-Object System.Collections.Generic.List[string];
+
+          foreach ($d in "A", "B") {
+            New-Item $d -ItemType Directory | Out-Null;
+
+            if ("${{ runner.os }}" -eq "Windows") {
+              $fileBaseName = "${d}-script.bat";
+            }
+            else {
+              $fileBaseName = "${d}-script.sh";
+            }
+
+            $file = Join-Path -Path $d -ChildPath $fileBaseName;
+
+            if ("${{ runner.os}}" -eq "Windows") {
+              Set-Content $file "echo Hello from ${file}";
+            }
+            else {
+              Set-Content $file "#!/usr/bin/env bash`n`necho `"Hello from ${file}`"";
+              & chmod +x $file;
+
+              if ($LASTEXITCODE -ne 0) {
+                Write-Host "Failed to make the script file executable";
+                exit 1;
+              }
+            }
+
+            $directoryPath = Get-Item $d | Select-Object -ExpandProperty FullName;
+            $pathlist.Add($directoryPath);
+
+            Add-Content ${{ github.env }} "FILE_${d}=${fileBaseName}";
+          }
+
+          $addedPaths = $pathlist -join [System.IO.Path]::PathSeparator;
+
+          Write-Host "Adding ${addedPaths} to GitHub PATH";
+          Add-Content ${{ github.path }} $addedPaths;
+
+      - name: Execute script A
+        run: ${{ env.FILE_A }}
+
+      - name: Execute script B
+        run: ${{ env.FILE_B }}
