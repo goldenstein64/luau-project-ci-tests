@@ -1,0 +1,43 @@
+name: Test
+
+on: push
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        luaVersion: ["5.1", "5.2", "5.3", "5.4", "5.5", "luajit"]
+        os: ["ubuntu-latest", "macos-latest", "windows-latest"]
+
+    steps:
+    # We are going to install
+    # lua-compat-5.3 from source
+    # patched by https://github.com/lunarmodules/lua-compat-5.3/pull/74
+    # to test lua-compat-5.3 on Lua 5.5
+    - uses: actions/checkout@master
+      with:
+        repository: lunarmodules/lua-compat-5.3
+
+    - uses: ilammy/msvc-dev-cmd@v1
+      if: ${{ runner.os == 'Windows' && !startsWith(matrix.luaVersion, 'luajit') }}
+
+    - uses: luarocks/gh-actions-lua@master
+      with:
+        luaVersion: ${{ matrix.luaVersion }}
+
+    - uses: luarocks/gh-actions-luarocks@master
+
+    - name: Download lua-compat-5.3 patch
+      run: curl -kLO "https://github.com/lunarmodules/lua-compat-5.3/pull/74.patch"
+
+    - name: Apply lua-compat-5.3 patch
+      run: git apply "74.patch"
+
+    - name: Lint development rockspec
+      run: luarocks lint "rockspecs/compat53-scm-1.rockspec"
+
+    - name: Install the patched lua-compat-5.3
+      run: luarocks make "rockspecs/compat53-scm-1.rockspec"
+
