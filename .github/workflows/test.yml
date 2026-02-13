@@ -1,0 +1,111 @@
+name: Test
+
+on: push
+
+jobs:
+  test-unix:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        lua-version: ["5.1", "5.2", "5.3", "5.4", "5.5", "luajit", "openresty"]
+        os: ["ubuntu-latest", "macos-latest"]
+
+    env:
+      UNIX_ODBC_VERSION: 2.3.14
+
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        repository: lunarmodules/luasql
+
+    - uses: luau-project/setup-lua@v1
+      with:
+        lua-version: ${{ matrix.lua-version }}
+
+    - name: Show Lua and LuaRocks version
+      run: |
+        lua -v
+        luarocks --version
+
+    - name: Download Unix ODBC
+      run: |
+        cd "${{ runner.temp }}"
+        curl -L -O \
+          "https://github.com/lurcher/unixODBC/releases/download/v${{ env.UNIX_ODBC_VERSION }}/unixODBC-${{ env.UNIX_ODBC_VERSION }}.tar.gz"
+
+    - name: Extract Unix ODBC
+      run: tar -C "${{ runner.temp }}" -xf "${{ runner.temp }}/unixODBC-${{ env.UNIX_ODBC_VERSION }}.tar.gz"
+
+    - name: Configure, build and install Unix ODBC
+      run: |
+        cd "${{ runner.temp }}"
+        mkdir "build-unixODBC-${{ env.UNIX_ODBC_VERSION }}"
+        cd "build-unixODBC-${{ env.UNIX_ODBC_VERSION }}"
+
+        ../unixODBC-${{ env.UNIX_ODBC_VERSION }}/configure --prefix=/usr/local && \
+        make && \
+        sudo make install
+
+    - name: Create 2.7.1 rockspec for the ODBC driver
+      run: sed -e "s/2\\.6\\.0\\-3/2.7.1-1/g" -e "s/2\\.6\\.0/2.7.1/g" -e "s/incdirs = /defines = \{ \"LUASQL_VERSION_NUMBER=\\\\\"\" .. version .. \"\\\\\"\" \},\\n           incdirs = /g" "rockspec/luasql-odbc-2.6.0-3.rockspec" > "rockspec/luasql-odbc-2.7.1-1.rockspec"
+
+    - name: Print luasql-odbc 2.7.1 rockspec
+      run: cat "rockspec/luasql-odbc-2.7.1-1.rockspec"
+
+    - name: Build and install luasql-odbc
+      run: luarocks make "rockspec/luasql-odbc-2.7.1-1.rockspec"
+
+  test-windows:
+    runs-on: "windows-latest"
+    defaults:
+      run:
+        shell: cmd
+    strategy:
+      fail-fast: false
+      matrix:
+        lua-version: ["5.1", "5.2", "5.3", "5.4", "5.5", "luajit", "openresty"]
+        toolchain: ["msvc", "gcc"]
+
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        repository: lunarmodules/luasql
+
+    - uses: ilammy/msvc-dev-cmd@v1
+      if: ${{ matrix.toolchain == 'msvc' }}
+
+    - uses: luau-project/setup-lua@v1
+      with:
+        lua-version: ${{ matrix.lua-version }}
+
+    - name: Show Lua and LuaRocks version
+      run: |
+        lua -v
+        luarocks --version
+
+    - name: Create 2.7.1 rockspec for the ODBC driver
+      run: |
+        "C:\Program Files\Git\usr\bin\sed.exe" -e "s/2\.6\.0\-3/2.7.1-1/g" -e "s/2\.6\.0/2.7.1/g" -e "s/incdirs = /defines = { \"LUASQL_VERSION_NUMBER=\\\\\"\" .. version .. \"\\\\\"\" },\n           incdirs = /g" "rockspec\luasql-odbc-2.6.0-3.rockspec" > "rockspec\luasql-odbc-2.7.1-1.rockspec"
+
+    - name: Print luasql-odbc 2.7.1 rockspec
+      run: type "rockspec\luasql-odbc-2.7.1-1.rockspec"
+
+    # For the latest MSVC on Windows, we need to feed LuaRocks
+    # the path to the directory containing 'sql.h'.
+    # At the moment, 'sql.h' can be found at:
+    # Windows SDK dir (e.g.: C:\Program Files (x86)\Windows Kits\10\) +
+    # the include subdir (e.g.: include) +
+    # Windows SDK version subdir (e.g.: 10.0.26100.0\) +
+    # the um subdir (e.g.: um)
+    #
+    # In short, on recent MSVC, 'sql.h' can be found at:
+    # C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\um
+    #
+    - name: Build and install luasql-odbc (MSVC)
+      if: ${{ matrix.toolchain == 'msvc' }}
+      run: luarocks make "rockspec\luasql-odbc-2.7.1-1.rockspec" "ODBC_INCDIR=%WindowsSdkDir%include\%WindowsSDKVersion%um"
+
+    - name: Build and install luasql-odbc (MinGW-w64)
+      if: ${{ matrix.toolchain != 'msvc' }}
+      run: luarocks make "rockspec\luasql-odbc-2.7.1-1.rockspec"
