@@ -1,0 +1,67 @@
+name: Test
+
+on: push
+
+jobs:
+  zlib-test:
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: cmd
+
+    strategy:
+      fail-fast: false
+
+      matrix:
+        zlib-version:
+          - 1.3.1
+          - 1.3.2
+
+        toolchain:
+          - msvc
+          - gcc
+
+    steps:
+      - name: Setup MSVC developer prompt
+        uses: ilammy/msvc-dev-cmd@v1
+        if: ${{ matrix.toolchain == 'msvc' }}
+
+      - name: Download zlib
+        run: curl -L -O "https://zlib.net/fossils/zlib-${{ matrix.zlib-version }}.tar.gz"
+
+      - name: Extract zlib
+        run: tar -xf "zlib-${{ matrix.zlib-version }}.tar.gz"
+
+      - name: Configure zlib through CMake
+        run: |
+          IF "${{ matrix.toolchain }}" EQU "msvc" (
+            SET "CMAKE_GENERATOR=NMake Makefiles"
+          ) ELSE (
+            SET "CMAKE_GENERATOR=MinGW Makefiles"
+          )
+
+          IF "${{ matrix.zlib-version }}" EQU "1.3.2" (
+            cmake -G "%CMAKE_GENERATOR%" ^
+              -DCMAKE_BUILD_TYPE=Release ^
+              -DZLIB_BUILD_SHARED=ON ^
+              --install-prefix "C:\zlib" ^
+              -S "zlib-${{ matrix.zlib-version }}" ^
+              -B "build-zlib"
+          ) ELSE (
+            cmake -G "%CMAKE_GENERATOR%" ^
+              -DCMAKE_BUILD_TYPE=Release ^
+              -DBUILD_SHARED_LIBS=ON ^
+              --install-prefix "C:\zlib" ^
+              -S "zlib-${{ matrix.zlib-version }}" ^
+              -B "build-zlib"
+          )
+
+      - name: Build zlib
+        run: cmake --build "build-zlib" --config Release
+
+      - name: Install zlib
+        run: cmake --install "build-zlib" --config Release
+
+      - name: Show zlib installation directory
+        run: tree /F "C:\zlib"
