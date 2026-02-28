@@ -1,0 +1,54 @@
+name: Test
+
+on: push
+
+jobs:
+
+  test:
+    runs-on: ${{ matrix.os }}
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    strategy:
+      fail-fast: false
+
+      matrix:
+
+        os:
+          - windows-latest
+
+        sys:
+          # - MINGW64
+          # - MINGW32
+          - UCRT64
+          # - CLANG64
+
+    steps:
+
+      - uses: msys2/setup-msys2@v2
+        id: msys2
+        with:
+          msystem: ${{ matrix.sys }}
+
+      - name: Echo GITHUB_ENV
+        run: echo "$GITHUB_ENV"
+
+      - name: Echo GITHUB_ENV through GitHub workflow syntax
+        run: echo '${{ github.env }}'
+
+      - name: Echo GITHUB_PATH
+        run: echo "$GITHUB_PATH"
+
+      - name: Echo GITHUB_PATH through GitHub workflow syntax
+        run: echo '${{ github.path }}'
+
+      - name: Add 7z to path
+        run: |
+          sevenzip="$(cygpath -u "$PROGRAMFILES\\7-Zip")"
+          echo "$sevenzip"
+          echo "$sevenzip" >> $GITHUB_PATH
+
+      - name: Test 7z
+        run: 7z --help
