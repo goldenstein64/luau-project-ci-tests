@@ -1,0 +1,111 @@
+name: Test
+
+on: push
+
+jobs:
+
+  all-in-one:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@main
+        with:
+          repository: luau-project/ci-tests
+          ref: datafile-issue
+          path: my-great-asset
+
+      - name: Install Lua 5.4
+        uses: luarocks/gh-actions-lua@master
+        with:
+          luaVersion: 5.4
+
+      - name: Download LuaRocks all-in-one binary
+        run: curl -LO https://luarocks.github.io/luarocks/releases/luarocks-3.13.0-linux-x86_64.zip
+
+      - name: Unpack LuaRocks
+        run: unzip luarocks-3.13.0-linux-x86_64.zip
+
+      - name: Place LuaRocks in the same folder as Lua
+        run: |
+          mv luarocks-3.13.0-linux-x86_64/* .lua/bin
+          rm -rf ./luarocks-3.13.0-linux-x86_64
+
+      - name: Configure LuaRocks
+        run: |
+          luarocks config lua_version 5.4
+          luarocks config lua_dir "${{ github.workspace }}/.lua"
+
+          lua_path=$(luarocks path --lr-path)
+          lua_cpath=$(luarocks path --lr-cpath)
+          lr_bin=$(luarocks path --lr-bin)
+
+          echo "LUA_PATH=${lua_path}" >> ${{ github.env }}
+          echo "LUA_CPATH=${lua_cpath}" >> ${{ github.env }}
+          echo "${lr_bin}" >> ${{ github.path }}
+
+      - name: Install module
+        working-directory: my-great-asset
+        run: luarocks make my-great-asset-dev-1.rockspec
+
+      - name: Run test
+        run: lua -e "require(\"my-great-asset\").exec()"
+
+  from-source:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@main
+        with:
+          repository: luau-project/ci-tests
+          ref: datafile-issue
+          path: my-great-asset
+
+      - name: Install Lua 5.4
+        uses: luarocks/gh-actions-lua@master
+        with:
+          luaVersion: 5.4
+
+      - name: Download LuaRocks all-in-one binary
+        run: curl -LO https://luarocks.github.io/luarocks/releases/luarocks-3.13.0.tar.gz
+
+      - name: Unpack LuaRocks
+        run: tar -xf luarocks-3.13.0.tar.gz
+
+      - name: Place LuaRocks in the same folder as Lua
+        run: |
+          cd luarocks-3.13.0
+          ./configure \
+            "--prefix=${{ github.workspace }}/.lua" \
+            "--with-lua=${{ github.workspace }}/.lua"
+          make
+          make install
+          cd ..
+          rm -rf ./luarocks-3.13.0
+
+      - name: Configure LuaRocks
+        run: |
+          lua_path=$(luarocks path --lr-path)
+          lua_cpath=$(luarocks path --lr-cpath)
+          lr_bin=$(luarocks path --lr-bin)
+
+          echo "LUA_PATH=${lua_path}" >> ${{ github.env }}
+          echo "LUA_CPATH=${lua_cpath}" >> ${{ github.env }}
+          echo "${lr_bin}" >> ${{ github.path }}
+
+      - name: Install module
+        working-directory: my-great-asset
+        run: luarocks make my-great-asset-dev-1.rockspec
+
+      - name: Run test
+        run: lua -e "require(\"my-great-asset\").exec()"
+
