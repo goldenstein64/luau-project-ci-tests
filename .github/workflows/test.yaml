@@ -1,0 +1,70 @@
+name: Test
+
+on: push
+
+jobs:
+  msys2:
+    runs-on: ${{ matrix.os }}
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    strategy:
+      fail-fast: false
+
+      matrix:
+
+        os:
+          - windows-latest
+
+        sys:
+          - UCRT64
+
+    steps:
+
+      - uses: msys2/setup-msys2@v2
+        id: msys2
+        with:
+          msystem: ${{ matrix.sys }}
+          install: |
+            git
+            curl
+          pacboy: |
+            cc:p
+            make:p
+
+      - uses: actions/checkout@v6
+
+      - name: Print env vars keys
+        run: |
+          printenv | cut -d= -f1
+
+      # - uses: actions/github-script@v8
+      #   name: Run script
+      #   with:
+      #     script: |
+      #       const { stat } = require("node:fs/promises");
+      #       const { join } = require("node:path");
+
+      #       const bash = join(
+      #         process.env["RUNNER_TEMP"] || "",
+      #         "msys64",
+      #         "usr",
+      #         "bin",
+      #         "bash.exe"
+      #       );
+
+      #       stat(bash)
+      #         .then((s) => {
+      #           core.info(`bash found at "${bash}" => stat: ${s}`);
+      #         })
+      #         .catch(err => {
+      #           if (err.code === "ENOENT") {
+      #             core.info("Bash not found");
+      #           }
+      #           else {
+      #             core.info(err);
+      #           }
+      #         });
+
