@@ -1,0 +1,37 @@
+name: Test
+
+on: push
+
+jobs:
+
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+
+      matrix:
+        lua-version:
+          - 5.4
+
+        use-custom-tree:
+          - true
+          - false
+
+    steps:
+
+      - name: Install Lua
+        uses: luarocks/gh-actions-lua@master
+        with:
+          luaVersion: ${{ matrix.lua-version }}
+
+      - name: Install LuaRocks
+        uses: luarocks/gh-actions-luarocks@master
+
+      - name: Install `luarocks-loader` (with custom tree)
+        if: ${{ matrix.use-custom-tree }}
+        run: luarocks install --tree=/tmp/my-tree luarocks-loader
+
+      - name: Install `luarocks-loader`
+        if: ${{ !matrix.use-custom-tree }}
+        run: luarocks install luarocks-loader
