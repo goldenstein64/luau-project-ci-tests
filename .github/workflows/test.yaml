@@ -30,7 +30,10 @@ jobs:
 
       - name: Install `luarocks-loader` (with custom tree)
         if: ${{ matrix.use-custom-tree }}
-        run: luarocks install --tree=/tmp/my-tree luarocks-loader
+        run: |
+          luarocks install --tree=/tmp/my-tree --only-deps luarocks-build-cyan
+          eval $(luarocks --tree=/tmp/my-tree path)
+          luarocks install --tree=/tmp/my-tree luarocks-loader
 
       - name: Install `luarocks-loader`
         if: ${{ !matrix.use-custom-tree }}
