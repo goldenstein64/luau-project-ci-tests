@@ -1,0 +1,61 @@
+name: LuaSocket PR 433
+
+on: push
+
+jobs:
+  test:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: cmd
+    strategy:
+      fail-fast: false
+      matrix:
+        lua-version: ["5.1", "5.2", "5.3", "5.4", "5.5", "luajit"]
+
+    steps:
+
+    - name: Restore from cache the C compiler used by goldenstein64
+      id: restore-c-compiler
+      uses: actions/cache/restore@v6
+      with:
+        path: mingw-20.0.exe
+        key: mingw-20.0.exe
+
+    - name: Download the C compiler used by goldenstein64
+      if: steps.restore-c-compiler.outputs.cache-hit != 'true'
+      run: curl -LO "https://nuwen.net/files/mingw/mingw-20.0.exe"
+
+    - name: Save on cache the C compiler used by goldenstein64
+      if: steps.restore-c-compiler.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v6
+      with:
+        path: mingw-20.0.exe
+        key: mingw-20.0.exe
+
+    - name: Extract the C compiler
+      run: |
+        "%PROGRAMFILES%\7-zip\7z.exe" x mingw-20.0.exe
+
+    - name: Place the C compiler in front of PATH environment variable
+      run: |
+        echo ${{ github.workspace }}\MinGW\bin>>${{ github.path }}
+
+    - name: Install Lua and LuaRocks
+      uses: luau-project/setup-lua@v2
+      with:
+        lua-version: ${{ matrix.lua-version }}
+
+    - name: Place the compiler sysroot to the end of external_deps_dirs
+      run: |
+        luarocks config external_deps_dirs[3] "${{ github.workspace }}\MinGW\x86_64-w64-mingw32"
+
+    - name: Clone luasocket
+      uses: actions/checkout@v7
+      with:
+        repository: lunarmodules/luasocket
+        path: luasocket
+
+    - name: Build LuaSocket from the development rockspec
+      working-directory: luasocket
+      run: luarocks make luasocket-scm-3.rockspec
