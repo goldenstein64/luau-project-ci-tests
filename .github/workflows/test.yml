@@ -49,9 +49,8 @@ jobs:
     - name: Place the compiler sysroot to the end of external_deps_dirs
       run: |
         luarocks config external_deps_dirs[1] c:\external
-        luarocks config external_deps_dirs[2] c:\mingw
+        luarocks config external_deps_dirs[2] "${{ github.workspace }}\MinGW\x86_64-w64-mingw32"
         luarocks config external_deps_dirs[3] c:\windows\system32
-        luarocks config external_deps_dirs[4] "${{ github.workspace }}\MinGW\x86_64-w64-mingw32"
 
     - name: Clone luasocket
       uses: actions/checkout@v7
